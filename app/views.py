@@ -7,29 +7,29 @@ from core.models import Client, Spend, PointBalance, SpendFinal
 from . import serializers
 
 def SpendFinalGenerator(current_transaction_GET, current_transaction, final_total_point_remove):
-    """An helper function to calulate the total spend from each payer"""
+    """An helper function to calculate the total spend from each payer"""
     if current_transaction != 0:
-        """Not last part"""
+        """No more transcations in the queue"""
         if SpendFinal.objects.filter(payer=current_transaction_GET.payer).exists():
             """Add to an existing payer"""
             spendfinal = SpendFinal.objects.get(payer=current_transaction_GET.payer)
             spendfinal.points = (spendfinal.points - current_transaction)
             spendfinal.save()
         else:
-            """New payer"""
+            """Create a new payer in the system"""
             SpendFinal.objects.create(
                 payer=current_transaction_GET.payer,
                 points= (-1 * current_transaction)
             )
     else:
-        """Last"""
+        """More transactions in the queue"""
         if SpendFinal.objects.filter(payer=current_transaction_GET.payer).exists():
             """Add to an existing payer"""
             spendfinal = SpendFinal.objects.get(payer=current_transaction_GET.payer)
             spendfinal.points = (spendfinal.points - final_total_point_remove)
             spendfinal.save()
         else:
-            """New payer"""
+            """Create a new payer in the system"""
             SpendFinal.objects.create(
                 payer=current_transaction_GET.payer,
                 points= (-1 * final_total_point_remove)
@@ -45,7 +45,6 @@ class AddTransaction(viewsets.ModelViewSet):
 
     def list(self, request, format=None):
         """GET"""
-        print('get')
         queryset = Client.objects.all()
         serializer = serializers.ClientGET(queryset, many=True)
         return Response(serializer.data)
@@ -57,7 +56,7 @@ class AddTransaction(viewsets.ModelViewSet):
         self.perform_create(serializer)
 
         if PointBalance.objects.filter(payer=serializer.data['payer']).exists():
-            """If yes - exissting payer"""
+            """Add to an existing payer"""
             points = PointBalance.objects.get(payer=serializer.data['payer'])
             new_total_points = int(serializer.data['points']) + points.points
 
@@ -65,7 +64,7 @@ class AddTransaction(viewsets.ModelViewSet):
                 points=new_total_points,
             )
         else:
-            """No payer, add a new one"""
+            """Create a new payer"""
             PointBalance.objects.create(
                 payer=serializer.data['payer'],
                 points=serializer.data['points']
@@ -81,14 +80,13 @@ class SpednPoints(viewsets.ModelViewSet):
 
     def list(self, request, format=None):
         """GET"""
-        print('get')
         queryset = Spend.objects.all()
         serializer = serializers.SpendGET(queryset, many=True)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         """POST"""
-
+        # Delete the old data
         SpendFinal.objects.all().delete()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -96,63 +94,42 @@ class SpednPoints(viewsets.ModelViewSet):
 
         try:
             """Check for errors"""
-            print('total points')
-            print(total_points)
-
-
+            # While condition
             equal_zero = True
             while equal_zero == True:
-                """"""
-                print('new while----------')
+                """a loop to check every transaction separately"""
+                #Get current transaction state
                 current_transaction = Client.objects.filter().order_by('timestamp').first()
                 current_transaction_GET = Client.objects.get(
                     payer=current_transaction.payer,
                     timestamp=current_transaction.timestamp
                 )
+
                 final_total_point_remove = current_transaction.points - total_points
-                print('current_transaction.points - total_points')
-                print(final_total_point_remove)
-                print('current_transaction.points')
-                print(current_transaction.points)
-                print(total_points - current_transaction.points)
+                # Current final balance based on the payer
                 current_final_balance = PointBalance.objects.get(payer=current_transaction.payer)
-                print('current_transaction')
-                print(current_transaction)
-                print('current_transaction.points')
-                print(current_transaction.points)
-                print('current_transaction.payer')
-                print(current_transaction.payer)
-                print('total_points - current_transaction.points')
-                print(total_points - current_transaction.points)
 
                 if (total_points - current_transaction.points) < 0:
-                    """No more moves possible"""
-                    print('No more moves possble')
+                    """This state is the last one that the bot need to check"""
+                    # Updating the tables
                     PointBalance.objects.filter(payer=current_transaction.payer).update(
                         points=(current_final_balance.points - total_points)
                     )
                     Client.objects.filter(id=current_transaction.id).update(
                         points=(current_transaction.points - total_points)
                     )
-                    print('current_final_balance.points')
-                    print(current_final_balance.points)
-                    print(current_transaction_GET.points)
                     SpendFinalGenerator(current_transaction_GET, 0, total_points)
                     equal_zero = False
 
                 else:
-                    """Recursive"""
-                    print('recursive')
+                    """Check this state and than loop again to check the next one in line"""
+                    # Updating the tables
                     total_points = total_points - current_transaction.points
-                    print('new total points')
-                    print(total_points)
                     PointBalance.objects.filter(payer=current_transaction.payer).update(
                         points=(current_final_balance.points - current_transaction.points)
                     )
-                    print('current_final_balance.points')
-                    # print(current_final_balance.points)
-                    print(current_transaction_GET.points)
                     SpendFinalGenerator(current_transaction_GET, current_transaction.points, 0)
+                    # Delete this state
                     current_transaction.delete()
 
             queryset = SpendFinal.objects.all()
@@ -172,7 +149,6 @@ class PointFinalBalance(viewsets.ModelViewSet):
 
     def list(self, request, format=None):
         """GET"""
-        print('get')
         queryset = PointBalance.objects.all()
         serializer = serializers.PointBalanceGET(queryset, many=True)
         return Response(serializer.data)
@@ -190,7 +166,6 @@ class SpendFinalBalance(viewsets.ModelViewSet):
 
     def list(self, request, format=None):
         """GET"""
-        print('get')
         queryset = SpendFinal.objects.all()
         serializer = serializers.SpendFinalGET(queryset, many=True)
         return Response(serializer.data)
