@@ -41,7 +41,7 @@ class AddTransaction(viewsets.ModelViewSet):
     """Manage add transaction in the database"""
     serializer_class = serializers.ClientPOST
     queryset = Client.objects.all()
-    renderer_classes = [JSONRenderer,BrowsableAPIRenderer]
+    renderer_classes = [JSONRenderer,]
 
     def list(self, request, format=None):
         """GET"""
@@ -77,7 +77,7 @@ class SpednPoints(viewsets.ModelViewSet):
     """Manage spedn points in the database"""
     serializer_class = serializers.SpendPOST
     queryset = Spend.objects.all()
-    renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
+    renderer_classes = [JSONRenderer,]
 
     def list(self, request, format=None):
         """GET"""
@@ -168,7 +168,7 @@ class PointFinalBalance(viewsets.ModelViewSet):
     """Manage spedn points in the database"""
     serializer_class = serializers.PointBalancePOST
     queryset = PointBalance.objects.all()
-    renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
+    renderer_classes = [JSONRenderer,]
 
     def list(self, request, format=None):
         """GET"""
@@ -186,7 +186,7 @@ class SpendFinalBalance(viewsets.ModelViewSet):
     """Manage spedn points in the database"""
     serializer_class = serializers.SpendFinalPOST
     queryset = SpendFinal.objects.all()
-    renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
+    renderer_classes = [JSONRenderer,]
 
     def list(self, request, format=None):
         """GET"""
