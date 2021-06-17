@@ -1,4 +1,4 @@
-# ITAY GOLDFADEN CODEING EXERCISE
+# ITAY GOLDFADEN CODING EXERCISE
 
 Here you can find my HTTP web service exercise.
 
@@ -7,7 +7,7 @@ Please follow the docs with all of the requests
 
 ## How to run the code
 
-1. Install pip -
+1. Install pip - 
 * Windows:
 
 ```bash
